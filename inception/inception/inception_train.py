@@ -55,6 +55,7 @@ tf.app.flags.DEFINE_boolean('fine_tune', False,
 tf.app.flags.DEFINE_string('pretrained_model_checkpoint_path', '',
                            """If specified, restore this pretrained model """
                            """before beginning any training.""")
+tf.app.flags.DEFINE_string('time_file', 'time_series', """No doc.""")
 
 # **IMPORTANT**
 # Please note that this learning rate schedule is heavily dependent on the
@@ -330,11 +331,13 @@ def train(dataset):
     summary_writer = tf.train.SummaryWriter(
         FLAGS.train_dir,
         graph_def=sess.graph.as_graph_def(add_shapes=True))
-
+    
+    time_series = []
     for step in xrange(FLAGS.max_steps):
       start_time = time.time()
       _, loss_value = sess.run([train_op, loss])
       duration = time.time() - start_time
+      time_series.append(str(duration))
 
       assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
@@ -353,3 +356,6 @@ def train(dataset):
       if step % 5000 == 0 or (step + 1) == FLAGS.max_steps:
         checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
         saver.save(sess, checkpoint_path, global_step=step)
+
+    with open(os.path.join(FLAGS.train_dir, FLAGS.time_file), 'w') as f:
+      f.write(' '.join(time_series))
